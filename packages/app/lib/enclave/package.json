@@ -1,0 +1,35 @@
+{
+  "name": "@daimo/expo-enclave",
+  "version": "0.1.0",
+  "license": "GPL-3.0-or-later",
+  "description": "Secure enclave access for key generation and signing.",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "dev": "expo-module build",
+    "clean": "expo-module clean",
+    "lint": "expo-module lint",
+    "test": "echo No tests yet",
+    "prepare": "expo-module build",
+    "prepublishOnly": "expo-module prepublishOnly",
+    "expo-module": "expo-module"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "expo-enclave",
+    "ExpoEnclave"
+  ],
+  "homepage": "https://github.com/daimo-eth/daimo#readme",
+  "repository": "https://github.com/daimo-eth/daimo/tree/master/packages/daimo-expo-enclave",
+  "author": "Daimo",
+  "devDependencies": {
+    "@types/react": "~18.2.45",
+    "expo-module-scripts": "^3.0.11"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}
