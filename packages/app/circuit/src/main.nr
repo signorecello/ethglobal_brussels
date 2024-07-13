@@ -4,107 +4,93 @@ use dep::std::hash::sha256;
 
 global TREE_SIZE: u64 = 3;
 
-// owners:
-// a is h(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266)
-// b is h(0x70997970C51812dc3A010C7d01b50e0d17dc79C8)
-// c is h(0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC)
+fn hasher(leaves: [[u8; 32]; 2]) -> [u8; 32] {
+    let mut leaves_arr : [u8; 64] = [0; 64];
+    for i in 0..64 {
+        leaves_arr[i] = leaves[0][i];
+    }
+    for i in 0..32 {
+        leaves_arr[i + 32] = leaves[1][i];
+    }
+    let hashed : [u8; 32] = sha256(leaves_arr);
+    // let to_field = array_to_field(hashed);
+    hashed
+}
 
 struct MerkleTree {
-    root: Field,
-    hasher: fn([Field; 2]) -> Field,
+    root: [u8; 32],
+    hasher: fn([[u8; 32]; 2]) -> [u8; 32],
 }
 
 impl MerkleTree {
-    fn default(root: Field, hasher: fn([Field; 2]) -> Field) -> Self {
+    fn default(root: [u8; 32], hasher: fn([[u8; 32]; 2]) -> [u8; 32]) -> Self {
         Self { root, hasher }
     }
 
-    fn root(self, leaf: Field, indices: Field, siblings: ([Field; TREE_SIZE])) -> Field {
+    fn root(self, leaf: [u8; 32], indices: Field, siblings: ([[u8; 32]; TREE_SIZE])) -> [u8; 32] {
         let index_bits = indices.to_le_bits(TREE_SIZE as u32);
         let mut node = leaf;
         for i in 0..siblings.len() {
             let sibling = siblings[i];
-            if sibling != 0 {
-                let mut left = sibling;
-                let mut right = node;
-                if index_bits[i] == 0 {
-                    left = node;
-                    right = sibling;
-                }
-                node = (self.hasher)([left, right]);
+            let mut left = sibling;
+            let mut right = node;
+            if index_bits[i] == 0 {
+                left = node;
+                right = sibling;
             }
+            node = (self.hasher)([left, right]);
         }
         node
     }
-}
-
-// root is 0x21167ecd7bf6a886e76fcc0a4a160250dee259b6252f2972e5bca57e85e74f84
-
-fn hasher(leaves: [Field; 2]) -> Field {
-    hash([leaves[0], leaves[1]], 2)
 }
 
 fn main(
     x: [u8; 32],
     y: [u8; 32],
     msgHash: pub [u8; 32],
-    signature: [u8; 64] // paths: [Field; TREE_SIZE],
-    // indices: Field,
-    // root: pub Field
+    signature: [u8; 64], // paths: [Field; TREE_SIZE],
+    indices: Field,
+    root: pub [u8; 32],
+    paths: [[u8; 32]; TREE_SIZE]
 ) {
-    // let mut mt = MerkleTree::default(root, hasher);
-
     let valid_signature = verify_signature(x, y, signature, msgHash);
     assert(valid_signature);
-    // let pubkey_slice = pub_key_x.as_slice().append(pub_key_y.as_slice());
-    // let pubkey_array : [u8; 64] = pubkey_slice.as_array();
-    // println(pubkey_array);
-    // let leaf_array = sha256(pubkey_array);
-    // let mut leaf : Field = 0;
-    // for i in 0..32 {
-    //     leaf = (leaf * 256) + (leaf_array[i] as Field);
-    // }
-    // println(leaf);
-    // let siblings = paths;
-    // assert(root == mt.root(leaf, indices, siblings));
+
+    let pubkey_slice = x.as_slice().append(y.as_slice());
+    let pubkey_array : [u8; 64] = pubkey_slice.as_array();
+
+    let leaf = sha256(pubkey_array);
+    let mut mt = MerkleTree::default(root, hasher);
+    assert(root == mt.root(leaf, indices, paths));
 }
 
 #[test]
 fn test_leaf_0() {
     let x = [
-        240, 243, 75, 130, 121, 227, 193, 42,
-        154, 70, 197, 169, 202, 73, 57, 251,
-        83, 83, 74, 37, 8, 89, 161, 103,
-        137, 240, 128, 226, 12, 103, 245, 36
+        76, 17, 158, 237, 203, 160, 38, 154, 203, 149, 113, 248, 51, 105, 244, 158, 143, 147, 214, 208, 188, 57, 163, 208, 217, 91, 30, 162, 45, 193, 126, 73
     ];
     let y = [
-        191, 16, 166, 111, 133, 146, 220,
-        59, 186, 73, 214, 29, 230, 26,
-        198, 239, 128, 124, 12, 226, 155,
-        238, 84, 85, 108, 15, 140, 234,
-        106, 15, 134, 182
+        133, 130, 84, 24, 183, 146, 184, 42, 128, 217, 4, 6, 231, 202, 180, 86, 187, 249, 10, 58, 133, 202, 137, 87, 38, 204, 76, 104, 218, 230, 131, 234
     ];
     let hashed = [
-        228, 118, 141, 99, 237, 121, 215,
-        125, 70, 236, 226, 80, 150, 121,
-        98, 228, 237, 147, 205, 151, 92,
-        108, 253, 45, 230, 27, 126, 100,
-        157, 226, 44, 123
+        58, 47, 28, 212, 12, 195, 224, 102, 123, 153, 145, 57, 46, 31, 172, 198, 1, 223, 56, 171, 37, 251, 187, 20, 62, 243, 212, 89, 238, 217, 47, 192
     ];
     let signature = [
-        106, 155, 194, 151, 145, 94, 49, 171, 126, 32, 160,
-        89, 75, 21, 172, 0, 255, 164, 232, 167, 180, 97,
-        240, 238, 100, 55, 48, 85, 83, 33, 127, 224, 194,
-        215, 197, 162, 196, 132, 147, 243, 68, 86, 224, 112,
-        131, 122, 133, 54, 144, 213, 210, 144, 163, 253, 135,
-        2, 181, 5, 188, 214, 179, 241, 16, 236
+        228, 182, 231, 59, 213, 234, 131, 131, 111, 218, 136, 227, 65, 7, 8, 194, 156, 195, 96, 240, 207, 144, 49, 156, 4, 165, 126, 204, 59, 42, 182, 27, 117, 29, 214, 155, 229, 241, 193, 47, 125, 80, 49, 224, 232, 44, 205, 186, 159, 215, 235, 81, 67, 8, 197, 220, 251, 204, 172, 5, 42, 75, 80, 216
     ];
-    // let root = 0x1a0962962735cfb8bd29eefda168aeb30253848b548c70bef32a06437ed39a50;
-    // let paths = [
-    //     0x1b7fdccd18c5db0507b95cdeef0c0bf13cc6f7af1c5b325dad189359d4b674af,
-    //     0x071e1136e70ef083e239518fabd6a4a8b13e161a5055ade98fcc612c2c7014a5,
-    //     0x0e34ac2c09f45a503d2908bcb12f1cbae5fa4065759c88d501c097506a8b2290
-    // ];
-    // let indices = 0;
-    main(x, y, hashed, signature);
+    let indices = 2;
+    let root = [
+        190, 201, 237, 135, 149, 86, 192, 236, 201, 206, 230, 136, 98, 52, 247, 66, 177, 119, 237, 9, 159, 201, 25, 182, 44, 152, 201, 162, 91, 227, 185, 53
+    ];
+    let paths = [
+        [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        ], [
+            161, 64, 48, 85, 152, 96, 120, 83, 141, 176, 123, 236, 156, 237, 246, 201, 6, 136, 228, 89, 172, 193, 244, 110, 59, 43, 155, 44, 240, 167, 203, 225
+        ], [
+            4, 169, 209, 181, 95, 199, 170, 225, 149, 252, 234, 65, 74, 110, 243, 37, 191, 11, 89, 90, 218, 76, 238, 211, 210, 20, 231, 96, 0, 7, 123, 129
+        ]
+    ];
+
+    main(x, y, hashed, signature, indices, root, paths);
 }
