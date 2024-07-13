@@ -1,5 +1,6 @@
-use dep::std::ecdsa_secp256r1::verify_signature_slice;
+use dep::std::ecdsa_secp256r1::verify_signature;
 use dep::std::hash::poseidon2::Poseidon2::hash;
+use dep::std::hash::sha256;
 
 global TREE_SIZE: u64 = 3;
 
@@ -43,22 +44,67 @@ fn hasher(leaves: [Field; 2]) -> Field {
     hash([leaves[0], leaves[1]], 2)
 }
 
-fn main(paths: [Field; TREE_SIZE], indices: Field, entry: Field, root: Field) {
-    let mut mt = MerkleTree::default(root, hasher);
+fn main(
+    x: [u8; 32],
+    y: [u8; 32],
+    msgHash: pub [u8; 32],
+    signature: [u8; 64] // paths: [Field; TREE_SIZE],
+    // indices: Field,
+    // root: pub Field
+) {
+    // let mut mt = MerkleTree::default(root, hasher);
 
-    let siblings = paths;
-    assert(root == mt.root(entry, indices, siblings));
+    let valid_signature = verify_signature(x, y, signature, msgHash);
+    assert(valid_signature);
+    // let pubkey_slice = pub_key_x.as_slice().append(pub_key_y.as_slice());
+    // let pubkey_array : [u8; 64] = pubkey_slice.as_array();
+    // println(pubkey_array);
+    // let leaf_array = sha256(pubkey_array);
+    // let mut leaf : Field = 0;
+    // for i in 0..32 {
+    //     leaf = (leaf * 256) + (leaf_array[i] as Field);
+    // }
+    // println(leaf);
+    // let siblings = paths;
+    // assert(root == mt.root(leaf, indices, siblings));
 }
 
 #[test]
-fn some_test() {
-    let root = 0x2a102514e4d1bd10f58d0744001e6c415b9c3082b6ccfe6b64b4b129f5a28a4f;
-    let entry = 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266;
-    let paths = [
-        0x70997970c51812dc3a010c7d01b50e0d17dc79c8,
-        0x24f0ac648ded87a26e87444e6bf113fb6c1951fddeb573eab915ff71fc616b10,
-        0x0e34ac2c09f45a503d2908bcb12f1cbae5fa4065759c88d501c097506a8b2290
+fn test_leaf_0() {
+    let x = [
+        240, 243, 75, 130, 121, 227, 193, 42,
+        154, 70, 197, 169, 202, 73, 57, 251,
+        83, 83, 74, 37, 8, 89, 161, 103,
+        137, 240, 128, 226, 12, 103, 245, 36
     ];
-    let indices = 0;
-    main(paths, indices, entry, root);
+    let y = [
+        191, 16, 166, 111, 133, 146, 220,
+        59, 186, 73, 214, 29, 230, 26,
+        198, 239, 128, 124, 12, 226, 155,
+        238, 84, 85, 108, 15, 140, 234,
+        106, 15, 134, 182
+    ];
+    let hashed = [
+        228, 118, 141, 99, 237, 121, 215,
+        125, 70, 236, 226, 80, 150, 121,
+        98, 228, 237, 147, 205, 151, 92,
+        108, 253, 45, 230, 27, 126, 100,
+        157, 226, 44, 123
+    ];
+    let signature = [
+        106, 155, 194, 151, 145, 94, 49, 171, 126, 32, 160,
+        89, 75, 21, 172, 0, 255, 164, 232, 167, 180, 97,
+        240, 238, 100, 55, 48, 85, 83, 33, 127, 224, 194,
+        215, 197, 162, 196, 132, 147, 243, 68, 86, 224, 112,
+        131, 122, 133, 54, 144, 213, 210, 144, 163, 253, 135,
+        2, 181, 5, 188, 214, 179, 241, 16, 236
+    ];
+    // let root = 0x1a0962962735cfb8bd29eefda168aeb30253848b548c70bef32a06437ed39a50;
+    // let paths = [
+    //     0x1b7fdccd18c5db0507b95cdeef0c0bf13cc6f7af1c5b325dad189359d4b674af,
+    //     0x071e1136e70ef083e239518fabd6a4a8b13e161a5055ade98fcc612c2c7014a5,
+    //     0x0e34ac2c09f45a503d2908bcb12f1cbae5fa4065759c88d501c097506a8b2290
+    // ];
+    // let indices = 0;
+    main(x, y, hashed, signature);
 }
